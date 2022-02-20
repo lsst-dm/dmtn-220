@@ -1,0 +1,9 @@
+% bibentry template for lsst.bib in https://github.com/lsst/lsst-texmf/blob/main/texmf/bibtex/bib/lsst.bib
+
+@DocuShare{DMTN-220,
+   author = { Jim Bosch },
+    title = {Middleware Support for Campaign Definition and Management},
+     year = 2022,
+    month = Feb,
+   handle = {DMTN-220},
+      url = {https://dmtn-220.lsst.io } }
