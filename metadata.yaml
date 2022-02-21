@@ -37,8 +37,7 @@ authors:
 copyright: "2022, The Trustees of Princeton University"
 
 # Description. A short, 1-2 sentence statemement used by document indices.
-description: "The description of the Campaign Management system in DMTN-181 implies a few butler/pipeline middleware feature requests, and the processes and tooling for defining campaigns are expected to need new middleware support as well.
-This technote will attempt to aggregate those feature requests, while outlining a few possible architectures for how campaign definition and management will interact with the middleware."
+description: "The description of the Campaign Management system in the first draft of DMTN-181 :cite:`DMTN-181` implies a few butler/pipeline middleware feature requests, and the processes and tooling for defining campaigns are expected to need new middleware support as well. This technote will attempt to aggregate those feature requests, while outlining a few possible approaches for how campaign definition and management will interact with the middleware, based on the absence or presence of potential new middleware functionality."
 
 # Abstract, if available
 # abstract: >
