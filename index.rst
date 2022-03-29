@@ -90,7 +90,7 @@ For ``raw``-data exclusion lists, the clear alternative is to use `TAGGED` colle
 
 - Using a `TAGGED` collection very directly controls exactly one input dataset type, rather than data IDs that would apply to multiple input and output dataset types and task quanta all over the pipeline (at least until :ref:`feature-per-task-quantum-graph-generation` might allow them to be targeted more precisely).
 
-- The `TAGGED` collection would naturally be persistent, rather than ephemeral as data ID set uploads would be (until :ref:`feature-queryable-opaque-tables`),as requested for provenance reasons by :cite:`DMTN-181`.
+- The `TAGGED` collection would naturally be persistent, rather than ephemeral as data ID set uploads would be (until :ref:`feature-queryable-extension-tables`),as requested for provenance reasons by :cite:`DMTN-181`.
   Making a new `TAGGED` collection for each campaign and updating it within that campaign as necessary, seems a reasonable use of the collection system, as does maintaining one `TAGGED` collection representing our best current exclusion list.
   Neither of these provides strict reproducibility, as a `TAGGED` collection would still be subject to change after being used to drive processing, but we maintain that this is better handled by :ref:`feature-quantum-provenance` anyway.
 
@@ -148,7 +148,7 @@ It is also possible to use `Registry` interfaces to define custom "opaque" table
 This could make it easier to manage external tables across multiple similar data repositories, and it allows those tables to make use custom field types like `sphgeom` regions, timespans, and UUIDs that require cross-DBMS support beyond what is provided by SQLAlchemy alone.
 This is the preferred mechanism for "plugin" code built on top of the `Registry` that needs its own tables, and it is already in use by some of our own `Datastore` classes to store their internal per-file records.
 At present, however, the `Registry` query system cannot use these tables at all; they are truly opaque to it.
-Changing this is discussed in :ref:`feature-queryable-opaque-tables`.
+Changing this is discussed in :ref:`feature-queryable-extension-tables`.
 
 Without either of the two changes discussed above, the best way to add new tables and metadata columns to the `Registry` schema is thus to change the `Registry` schema itself, by modifying its "dimensions" configuration.
 This is already a very flexible system that allows arbitrary new tables with typical column types to be added (and later populated using existing `Registry` public methods), and it includes support for foreign keys between dimensions, allowing new tables tables to define relationships, not just metadata.
@@ -164,8 +164,8 @@ This naturally associates them with the dimensions schema via their data ID, and
 There are a few limitations that should be taken into account when considering using butler datasets for Campaign Definition storage, however:
 
 - Datasets may not be updated in place - they are written atomically for each data ID.
-- We don't currently have a good solution for rolling up small datasets (e.g. metric measurements or even per-detector catalogs) into larger files that can be *much* more efficient to read (see :ref:`feature-opaque-table-datastore` for a potential solution).
-- Dataset content cannot be used to directly drive `QuantumGraph` generation (which could be addressed by a combination of :ref:`feature-queryable-opaque-tables` and :ref:`feature-opaque-table-datastore`).
+- We don't currently have a good solution for rolling up small datasets (e.g. metric measurements or even per-detector catalogs) into larger files that can be *much* more efficient to read (see :ref:`feature-table-backed-datastore` for a potential solution).
+- Dataset content cannot be used to directly drive `QuantumGraph` generation (which could be addressed by a combination of :ref:`feature-queryable-extension-tables` and :ref:`feature-table-backed-datastore`).
 
 .. _middleware-feature-requests:
 
@@ -177,45 +177,148 @@ Middleware Feature Requests
 Data ID Set Upload
 ------------------
 
+.. note::
+   This feature is tracked as `DM-33621 <https://jira.lsstcorp.org/browse/DM-33621`__ and depends on `DM-31725 <https://jira.lsstcorp.org/browse/DM-31725`__ in Jira.
+
+This feature gives the butler query system the ability to accept data ID sets from external Python objects and files, uploading them to temporary tables for the duration of a single query or small set of queries (within a single context-manager block).
+This will be integrated into `QuantumGraph` generation, allowing external data ID sets to directly constrain that process.
+
+As a temporary upload, this feature does not fully provide the minimal middleware functionality requested by :cite:`DMTN-181`, but as noted earlier,  ``TAGGED`` collections are probably a better tool anyway for using exclusion lists or otherwise providing fine-grained control over input datasets, especially if the lists should remain persistent in the `Registry`.
+Making data ID set uploads persistent will require both this feature and :ref:`feature-queryable-extension-tables`.
+
+Temporary data ID set uploads do provide key functionality that ``TAGGED`` collections do not, however, in that they allow explicit external filtering or grouping for intermediate and output datasets and quanta, not just input datasets.
+Even this is fairly limited unless other features are implemented as well, however:
+
+- Without :ref:`feature-dynamic-dimensions`, it can only be used to filter or define relationships between existing dimensions, and since in practice all dimension combinations that could plausibly be related are already related (usually via spatial overlaps), any external data ID sets must be subsets of those that would be produced by the `Registry`'s default joins between those dimensions.
+New long-lived dimensions could be added to the configuration (with a single up-front schema migration) that could be designed to always require a data ID set upload to set relationships, however, and it *may* make sense to redefine the ``physical_filter`` - ``band`` relationship this way after data ID set upload lands - the current identification of each ``physical_filter`` with exactly one ``band`` seems like a "usually true" convenience that we should back away from enforcing as soon as our data model can reasonably support that.
+
+- Without :ref:`feature-per-task-quantum-graph-generation`, each data ID set constrains quanta and datasets for all tasks and dataset types in the QuantumGraph that involve its dimensions.
+For example, it does not provide a way to use different data ID sets for e.g. different types of coadds, unless each type of coadd is produced via a different QuantumGraph.
+
+This feature is difficult to implement only in the sense that it involves a piece of the codebase (the `lsst.daf.butler.registry.queries` subpackage) that requires a lot of work more generally; we have slowly added more and more functionality there "pragmatically" over the past several months to the point where class roles and encapsulation are quite tangled, and some of those ill-fitting additions are pieces we would like to build upon when implementing data ID set upload.
+`DM-31725 <https://jira.lsstcorp.org/browse/DM-31725`__ captures at least the initial prototyping work for the necessary refactor, and once it's done adding data ID upload itself should be quite easy.
+As a result, it's safe to say that we will deliver this functionality eventually, even if it isn't needed for Campaign Management/Definition, but making it a high priority for such usage won't necessarily make it something we can deliver quickly.
+
 .. _feature-dynamic-dimensions:
 
 Dynamic Dimensions
 ------------------
+
+.. note::
+   This feature is tracked as `DM-33751 <https://jira.lsstcorp.org/browse/DM-33751`__ and depends on `DM-31725 <https://jira.lsstcorp.org/browse/DM-31725`__ in Jira.
+
+In its minimal form, this feature allows butler dataset types to be defined  and datasets of those types read and written with data ID keys that are not part of the static dimensions configuration that defines much of the `Registry` schema.
+Unlike static dimensions, these dynamic dimensions would not be expected to have values that could be iterated over or enumerated independently of the datasets they identify, and hence there are no guarantees that those values take on the same meaning in different collections.
+They also would not be associated with metadata or have foreign keys or natural relationships to other dimensions.
+
+That makes it hard to use these dimensions in `QuantumGraph` generation, at least in any role other than pure input datasets.
+A slightly less minimal form of the feature could permit custom data ID keys in intermediate, output, and quantum data IDs if they had the same, constant value over the entire `QuantumGraph`.
+Where this functionality really shines is in combination with :ref:`feature-data-id-set-upload`, which could allow external data ID sets to relate dynamic dimensions to each other and existing static dimensions, providing fine-grained external control over the grouping done by `QuantumGraph` generation.
+
+It's hard to guess right now how difficult this feature would be to implement; generally speaking, registering dataset types with dynamic dimensions seems easy, but making those queryable later in the usual way seems hard, as we'd need to use subqueries on dataset-collection join tables in parts of the query system where we can usually rely on pure dimension tables existing, and this both inverts our usual process for query-building (start with dimensions, then look up datasets) and forces us to remember more about what we've already joined in to avoid unnecessarily including the same table in a query multiple times.
+It also seems that we'll need to modify the static schema a bit to remember the new dynamic dimensions - they can't be purely ephemeral, after all, if they are used to identify persistent datasets.
+Certainly we'll want to at least tackle `DM-31725 <https://jira.lsstcorp.org/browse/DM-31725`__ first, to get the query system in a state where we could contemplate an extension like this.
 
 .. _feature-quantum-provenance:
 
 Quantum Provenance
 ------------------
 
-.. _feature-queryable-opaque-tables:
+.. note::
+   This feature is fully described in DMTN-205 :cite:`DMTN-205`.
 
-Queryable Opaque Tables
------------------------
+Quantum Provenance here refers to storing the as-run `QuantumGraph` in the data repository (and in particular new `Registry` tables), as well as providing tools to traverse that graph in order to (among other things) reproduce previous processing runs.
+This is functionality that we have intended to include in the middleware from its inception, and while fully implementing it is still a major project, there is no question that it will ultimately get done.
 
-.. _feature-opaque-table-datastore:
+This is relevant for Campaign Management/Definition primarily because it draws a clear boundary between the provenance information and use cases that will be handled by the middleware provenance information and use cases that must be handled by Campaign Management/Definition.
+In particular, middleware provenance is aimed at rigorously solving the problem of exactly reproducibility, starting from a `QuantumGraph`, but it largely punts on providing any reproducibility for `QuantumGraph` generation, as (from its perspective) the inputs to `QuantumGraph` generation are mutable.
+Campaign Management could extend reproducibility earlier only by similarly taking care to depend only on immutable entities (such as git-controlled data ID lists) or limit via policy how other entities are modified in practice (e.g. "freezing" per-submission RUN collections after a batch job completes, and only using RUN collections as inputs to `QuantumGraph` generation).
+And it may be better to make no such attempt (at least not at *rigorous* reproducibility), since reproducibility starting from the `QuantumGraph` is already quite powerful.
 
-Opaque Table Datastore
+One subtlety of quantum provenance is that while it will not save the exact data ID sets passed in to `QuantumGraph` generation (when passing in data ID sets is implemented), it essentially will save the subsets of those sets that are consistent with each other and the other inputs to `QuantumGraph` generation.
+More precisely, if the dimensions of the data ID sets are recorded externally, one can obtain from quantum provenance data ID sets with those dimensions that will produce the same `QuantumGraph`, provided other constraints (such as input collection contents) have not changed.
+This may make it unnecessary for Campaign Management/Definition to store the data ID sets it uses directly.
+
+.. _feature-queryable-extension-tables:
+
+Queryable Extension Tables
+--------------------------
+----------
+
+.. note::
+   This feature depends on `DM-31725 <https://jira.lsstcorp.org/browse/DM-31725`__ in Jira.
+   It does not have a tracking ticket of its own yet.
+
+The butler registry already has an interface (albeit a mostly internal one) that allows external code to create custom tables in the same database.
+This is used by `Datastore` implementations to save information about each file, and could be used by Campaign Management/Definition as a tabular storage mechanism.
+At present these tables are completely opaque to the registry, however, and hence they can't be used to constrain registry queries or `QuantumGraph` generation.
+
+Allowing these extension tables to participate in those queries could be extremely powerful:
+
+- with :ref:`feature-data-id-set-upload`, it would allow data ID set uploads to be persistent, not just temporary;
+
+- Campaign Management/Definition could use these tables to save observational metadata, quality flags, campaign/workflow provenance, etc. within the `Registry`, and then include constraints on that information during `QuantumGraph` generation or when using `Registry` queries to create data ID sets.
+
+- with :ref:`feature-table-backed-datastore`, metric datasets produced by `PipelineTasks` could also be used to similarly constrain queries and `QuantumGraph` generation.
+
+To include an extension table in a registry query, the extension code would need to declare one or more special columns that the query system already knows how to include in its joins, such as dimension values, dataset UUIDs, spatial regions, and timespans.
+
+In addition to the general query-system work (`DM-31725 <https://jira.lsstcorp.org/browse/DM-31725`__), the main challenge in implementing this ticket is figuring out how the information provided by the extension code should be saved.
+There are two main options:
+
+- We could add new static tables whose rows record the schemas of extension tables, and populate them when those extensions are first registered.
+
+- We could require extension code that conforms to a specific schema-introspection interface to be referenced in the data repository or butler client configuration as an importable type string.
+
+To select between these we probably need to think about how we want to handle changes to extension table schemas.
+We probably don't want extension tables to participate in the butler's internal data repository versioning or migration system, except in a very limited way when an internal butler column used as a foreign key (e.g. dataset UUID or dimension) is changed in a backwards-incompatible way, and that's something we can hopefully avoid ever doing.
+But we do want extensions to be able to change the schemas of their own tables and give them the tools they need to do this in managed, backwards-compatibility-focused way.
+
+.. _feature-table-backed-datastore:
+
+Table-Backed Datastore
 ----------------------
 
-.. _feature-public-registry-sql-interface:
+.. note::
+   This feature is tracked as `DM-13362 <https://jira.lsstcorp.org/browse/DM-13362`__ in Jira.
+   It is also closely related to the subject `DMTN-203 <https://dmtn-203.lsst.io/v/index.html>`__ (which hasn't yet been written).
 
-Public Registry SQL Interface
------------------------------
+This feature implements a new concrete `Datastore`, which would use the registry's "opaque table" mechanism to store dataset contents entirely within the registry database.
+During batch execution, these records would be exported to the `QuantumGraph` when their datasets are needed as inputs, and they would initially be written to per-quantum files that would need to be merged prior to upload into the registry database.
+
+This storage makes sense only for very small datasets, and if it's only a small-dataset optimization, using the SQL registry database instead database or direct multi-dataset file storage (e.g. Parquet) is unlikely to be ideal.
+But it might be a lot easier to implement if we need help avoiding a proliferation of tiny files in a hurry.
+
+What's more relevant for Campaign Management/Definition is the combination of this feature with :ref:`feature-queryable-extension-tables`, in which the records that back these datasets become queryable, and this `Datastore` becomes ideal for metric datasets, which are essentially single values that we want to be usable as query constraints.
 
 .. _feature-dataset-annotations:
 
 Dataset Annotations
 -------------------
 
+.. note::
+   This feature is fully described in DMTN-204 :cite:`DMTN-204`.
+
+This collection of features involves ways to add annotations to a number of butler entities, such as datasets, dimension records, and collections.
+Many of these annotations are intended to provide information to Campaign Management/Definition processes, and it is an important question whether having them in the butler makes sense for Campaign Management/Definition workflows.
+
+It is generally true that the butler provides a good organizational structure for these annotations, and in the absence of arguments against, we probably should put them in the butler instead of setting up a similar organizational structure elsewhere.
+
+As discussed in :cite:`DMTN-204`, one option for implementing these is to use the existing opaque table storage system; when combined with :ref:`feature-queryable-extension-tables`, these annotations would also be usable in registry queries and `QuantumGraph` generation.
+With :ref:`feature-table-backed-datastore` as well, it may even be possible to implement them fully as regular butler datasets (which, when viable, is a much better-understood and low-risk extension point than using the opaque table interface directly).
+
 .. _feature-per-task-quantum-graph-generation:
 
 Per-Task QuantumGraph Generation
 --------------------------------
 
-.. _feature-in-memory-query-engine-for-quantum-graph-generation:
+.. note::
+   This feature is tracked as `DM-21904 <https://jira.lsstcorp.org/browse/DM-21904`__ and depends on `DM-31725 <https://jira.lsstcorp.org/browse/DM-31725`__ in Jira.
 
-In-Memory Query Engine for QuantumGraph Generation
---------------------------------------------------
+We have long had a pseudocode algorithm for `QuantumGraph` that addresses a number of current limitations in hand on `DM-21904 <https://jira.lsstcorp.org/browse/DM-21904`__, but with its implementation blocked by a lack of butler query-system functionality (essentially :ref:`feature-data-id-set-upload`) that we have been unable to prioritize.
+
+This algorithm is relevant for Campaign Management/Definition because it allows filters on data IDs - whether provided by data ID sets or boolean contraint expressions - to be specific to certain tasks or dataset types, for example allowing one data ID set to be used for one kind of coadd, and another data ID set to be used for a different type of coadd.
+Without this, the only way to have different tasks operate on different sets of input data IDs is via task code in either `PipelineTaskConnections.adjustQuantum` or `PipelineTask.runQuantum`.
 
 .. _other-drivers:
 
