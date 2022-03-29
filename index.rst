@@ -142,7 +142,6 @@ Databases for Campaign Definition
 
 The `Registry` guarantees that all of the tables and other database entities it produces can be confined to a single schema (in the namespace sense), allowing external tables in other schemas to safely coexist within the same database.  This theoretically allows those external tables and `Registry` tables to be used together in queries, and in many cases the `Registry` tables have straightforward, easy-to-interpret columns that would work well for this (especially for dimension tables, which are the ones that would probably be of most interest to campaign definition).
 This would probably work reasonably well right now, but it is not documented and formally not supported, and hence currently inadvisable for anything other than throwaway prototypes - while we originally intended to make the SQL interface public, this became very difficult to implement for a number of reasons, and it has been explicitly private for a few years now.
-Changing that is discussed in :ref:`feature-public-registry-sql-interface`.
 
 It is also possible to use `Registry` interfaces to define custom "opaque" tables within the same schema as its main tables.
 This could make it easier to manage external tables across multiple similar data repositories, and it allows those tables to make use custom field types like `sphgeom` regions, timespans, and UUIDs that require cross-DBMS support beyond what is provided by SQLAlchemy alone.
@@ -178,7 +177,7 @@ Data ID Set Upload
 ------------------
 
 .. note::
-   This feature is tracked as `DM-33621 <https://jira.lsstcorp.org/browse/DM-33621`__ and depends on `DM-31725 <https://jira.lsstcorp.org/browse/DM-31725`__ in Jira.
+   This feature is tracked as `DM-33621 <https://jira.lsstcorp.org/browse/DM-33621>`__ and depends on `DM-31725 <https://jira.lsstcorp.org/browse/DM-31725>`__ in Jira.
 
 This feature gives the butler query system the ability to accept data ID sets from external Python objects and files, uploading them to temporary tables for the duration of a single query or small set of queries (within a single context-manager block).
 This will be integrated into `QuantumGraph` generation, allowing external data ID sets to directly constrain that process.
@@ -190,13 +189,13 @@ Temporary data ID set uploads do provide key functionality that ``TAGGED`` colle
 Even this is fairly limited unless other features are implemented as well, however:
 
 - Without :ref:`feature-dynamic-dimensions`, it can only be used to filter or define relationships between existing dimensions, and since in practice all dimension combinations that could plausibly be related are already related (usually via spatial overlaps), any external data ID sets must be subsets of those that would be produced by the `Registry`'s default joins between those dimensions.
-New long-lived dimensions could be added to the configuration (with a single up-front schema migration) that could be designed to always require a data ID set upload to set relationships, however, and it *may* make sense to redefine the ``physical_filter`` - ``band`` relationship this way after data ID set upload lands - the current identification of each ``physical_filter`` with exactly one ``band`` seems like a "usually true" convenience that we should back away from enforcing as soon as our data model can reasonably support that.
+  New long-lived dimensions could be added to the configuration (with a single up-front schema migration) that could be designed to always require a data ID set upload to set relationships, however, and it *may* make sense to redefine the ``physical_filter`` - ``band`` relationship this way after data ID set upload lands - the current identification of each ``physical_filter`` with exactly one ``band`` seems like a "usually true" convenience that we should back away from enforcing as soon as our data model can reasonably support that.
 
 - Without :ref:`feature-per-task-quantum-graph-generation`, each data ID set constrains quanta and datasets for all tasks and dataset types in the QuantumGraph that involve its dimensions.
-For example, it does not provide a way to use different data ID sets for e.g. different types of coadds, unless each type of coadd is produced via a different QuantumGraph.
+  For example, it does not provide a way to use different data ID sets for e.g. different types of coadds, unless each type of coadd is produced via a different QuantumGraph.
 
 This feature is difficult to implement only in the sense that it involves a piece of the codebase (the `lsst.daf.butler.registry.queries` subpackage) that requires a lot of work more generally; we have slowly added more and more functionality there "pragmatically" over the past several months to the point where class roles and encapsulation are quite tangled, and some of those ill-fitting additions are pieces we would like to build upon when implementing data ID set upload.
-`DM-31725 <https://jira.lsstcorp.org/browse/DM-31725`__ captures at least the initial prototyping work for the necessary refactor, and once it's done adding data ID upload itself should be quite easy.
+`DM-31725 <https://jira.lsstcorp.org/browse/DM-31725>`__ captures at least the initial prototyping work for the necessary refactor, and once it's done adding data ID upload itself should be quite easy.
 As a result, it's safe to say that we will deliver this functionality eventually, even if it isn't needed for Campaign Management/Definition, but making it a high priority for such usage won't necessarily make it something we can deliver quickly.
 
 .. _feature-dynamic-dimensions:
@@ -205,7 +204,7 @@ Dynamic Dimensions
 ------------------
 
 .. note::
-   This feature is tracked as `DM-33751 <https://jira.lsstcorp.org/browse/DM-33751`__ and depends on `DM-31725 <https://jira.lsstcorp.org/browse/DM-31725`__ in Jira.
+   This feature is tracked as `DM-33751 <https://jira.lsstcorp.org/browse/DM-33751>`__ and depends on `DM-31725 <https://jira.lsstcorp.org/browse/DM-31725>`__ in Jira.
 
 In its minimal form, this feature allows butler dataset types to be defined  and datasets of those types read and written with data ID keys that are not part of the static dimensions configuration that defines much of the `Registry` schema.
 Unlike static dimensions, these dynamic dimensions would not be expected to have values that could be iterated over or enumerated independently of the datasets they identify, and hence there are no guarantees that those values take on the same meaning in different collections.
@@ -217,7 +216,7 @@ Where this functionality really shines is in combination with :ref:`feature-data
 
 It's hard to guess right now how difficult this feature would be to implement; generally speaking, registering dataset types with dynamic dimensions seems easy, but making those queryable later in the usual way seems hard, as we'd need to use subqueries on dataset-collection join tables in parts of the query system where we can usually rely on pure dimension tables existing, and this both inverts our usual process for query-building (start with dimensions, then look up datasets) and forces us to remember more about what we've already joined in to avoid unnecessarily including the same table in a query multiple times.
 It also seems that we'll need to modify the static schema a bit to remember the new dynamic dimensions - they can't be purely ephemeral, after all, if they are used to identify persistent datasets.
-Certainly we'll want to at least tackle `DM-31725 <https://jira.lsstcorp.org/browse/DM-31725`__ first, to get the query system in a state where we could contemplate an extension like this.
+Certainly we'll want to at least tackle `DM-31725 <https://jira.lsstcorp.org/browse/DM-31725>`__ first, to get the query system in a state where we could contemplate an extension like this.
 
 .. _feature-quantum-provenance:
 
@@ -243,10 +242,9 @@ This may make it unnecessary for Campaign Management/Definition to store the dat
 
 Queryable Extension Tables
 --------------------------
-----------
 
 .. note::
-   This feature depends on `DM-31725 <https://jira.lsstcorp.org/browse/DM-31725`__ in Jira.
+   This feature depends on `DM-31725 <https://jira.lsstcorp.org/browse/DM-31725>`__ in Jira.
    It does not have a tracking ticket of its own yet.
 
 The butler registry already has an interface (albeit a mostly internal one) that allows external code to create custom tables in the same database.
@@ -263,7 +261,7 @@ Allowing these extension tables to participate in those queries could be extreme
 
 To include an extension table in a registry query, the extension code would need to declare one or more special columns that the query system already knows how to include in its joins, such as dimension values, dataset UUIDs, spatial regions, and timespans.
 
-In addition to the general query-system work (`DM-31725 <https://jira.lsstcorp.org/browse/DM-31725`__), the main challenge in implementing this ticket is figuring out how the information provided by the extension code should be saved.
+In addition to the general query-system work (`DM-31725 <https://jira.lsstcorp.org/browse/DM-31725>`__), the main challenge in implementing this ticket is figuring out how the information provided by the extension code should be saved.
 There are two main options:
 
 - We could add new static tables whose rows record the schemas of extension tables, and populate them when those extensions are first registered.
@@ -280,8 +278,8 @@ Table-Backed Datastore
 ----------------------
 
 .. note::
-   This feature is tracked as `DM-13362 <https://jira.lsstcorp.org/browse/DM-13362`__ in Jira.
-   It is also closely related to the subject `DMTN-203 <https://dmtn-203.lsst.io/v/index.html>`__ (which hasn't yet been written).
+   This feature is tracked as `DM-13362 <https://jira.lsstcorp.org/browse/DM-13362>`__ in Jira.
+   It is also closely related to the subject of DMTN-203 :cite:`DMTN-203` (which hasn't yet been written).
 
 This feature implements a new concrete `Datastore`, which would use the registry's "opaque table" mechanism to store dataset contents entirely within the registry database.
 During batch execution, these records would be exported to the `QuantumGraph` when their datasets are needed as inputs, and they would initially be written to per-quantum files that would need to be merged prior to upload into the registry database.
@@ -313,9 +311,9 @@ Per-Task QuantumGraph Generation
 --------------------------------
 
 .. note::
-   This feature is tracked as `DM-21904 <https://jira.lsstcorp.org/browse/DM-21904`__ and depends on `DM-31725 <https://jira.lsstcorp.org/browse/DM-31725`__ in Jira.
+   This feature is tracked as `DM-21904 <https://jira.lsstcorp.org/browse/DM-21904>`__ and depends on `DM-31725 <https://jira.lsstcorp.org/browse/DM-31725>`__ in Jira.
 
-We have long had a pseudocode algorithm for `QuantumGraph` that addresses a number of current limitations in hand on `DM-21904 <https://jira.lsstcorp.org/browse/DM-21904`__, but with its implementation blocked by a lack of butler query-system functionality (essentially :ref:`feature-data-id-set-upload`) that we have been unable to prioritize.
+We have long had a pseudocode algorithm for `QuantumGraph` that addresses a number of current limitations in hand on `DM-21904 <https://jira.lsstcorp.org/browse/DM-21904>`__, but with its implementation blocked by a lack of butler query-system functionality (essentially :ref:`feature-data-id-set-upload`) that we have been unable to prioritize.
 
 This algorithm is relevant for Campaign Management/Definition because it allows filters on data IDs - whether provided by data ID sets or boolean contraint expressions - to be specific to certain tasks or dataset types, for example allowing one data ID set to be used for one kind of coadd, and another data ID set to be used for a different type of coadd.
 Without this, the only way to have different tasks operate on different sets of input data IDs is via task code in either `PipelineTaskConnections.adjustQuantum` or `PipelineTask.runQuantum`.
@@ -327,13 +325,13 @@ Other Drivers for Middleware Features
 
 Many of the features described here are important for other DM needs, and when considering the total development cost of a new Campaign Management/Definition, it makes sense to consider these "discounted" (or at least easier to prioritize) at some level.
 
-- `DM-31725 <https://jira.lsstcorp.org/browse/DM-31725`__ has come up repeatedly here as a blocker for other features.
+- `DM-31725 <https://jira.lsstcorp.org/browse/DM-31725>`__ has come up repeatedly here as a blocker for other features.
   It also blocks vectorized calibration-dataset lookup (the absence of which is frequently the bottleneck in `QuantumGraph` generation) and support for `PipelineTasks` whose dimensions include HEALPix or HTM (such as a task to produce HiPS maps).
 
-- Without :ref:`feature-per-task-quantum-graph-generation` / `DM-21904 <https://jira.lsstcorp.org/browse/DM-21904`__, some tasks in the DRP pipeline cannot safely be run as part of the same submission, forcing the pipeline to be split up into more steps than we would like.
+- Without :ref:`feature-per-task-quantum-graph-generation` / `DM-21904 <https://jira.lsstcorp.org/browse/DM-21904>`__, some tasks in the DRP pipeline cannot safely be run as part of the same submission, forcing the pipeline to be split up into more steps than we would like.
 
-- :ref:`feature-dynamic-dimensions` / `DM-33751 <https://jira.lsstcorp.org/browse/DM-33751`__ is one of two possible solutions to the problem of how the image cutout service should identify its outputs (the other is allowing some dataset types to have non-unique data IDs within a run, which is less generally useful).
-  It is also the best way (when combined with :ref:`feature-data-id-set-upload` / `DM-33621 <https://jira.lsstcorp.org/browse/DM-33621`__) to support use cases involving ad-hoc pairs of images, such as pairwise image differencing or some intra/extra-focal processing tasks.
+- :ref:`feature-dynamic-dimensions` / `DM-33751 <https://jira.lsstcorp.org/browse/DM-33751>`__ is one of two possible solutions to the problem of how the image cutout service should identify its outputs (the other is allowing some dataset types to have non-unique data IDs within a run, which is less generally useful).
+  It is also the best way (when combined with :ref:`feature-data-id-set-upload` / `DM-33621 <https://jira.lsstcorp.org/browse/DM-33621>`__) to support use cases involving ad-hoc pairs of images, such as pairwise image differencing or some intra/extra-focal processing tasks.
 
 - :ref:`feature-quantum-provenance` plays a key role in satisfying fundamental middleware requirements.
 
