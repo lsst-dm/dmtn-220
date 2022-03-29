@@ -325,6 +325,18 @@ Without this, the only way to have different tasks operate on different sets of 
 Other Drivers for Middleware Features
 =====================================
 
+Many of the features described here are important for other DM needs, and when considering the total development cost of a new Campaign Management/Definition, it makes sense to consider these "discounted" (or at least easier to prioritize) at some level.
+
+- `DM-31725 <https://jira.lsstcorp.org/browse/DM-31725`__ has come up repeatedly here as a blocker for other features.
+  It also blocks vectorized calibration-dataset lookup (the absence of which is frequently the bottleneck in `QuantumGraph` generation) and support for `PipelineTasks` whose dimensions include HEALPix or HTM (such as a task to produce HiPS maps).
+
+- Without :ref:`feature-per-task-quantum-graph-generation` / `DM-21904 <https://jira.lsstcorp.org/browse/DM-21904`__, some tasks in the DRP pipeline cannot safely be run as part of the same submission, forcing the pipeline to be split up into more steps than we would like.
+
+- :ref:`feature-dynamic-dimensions` / `DM-33751 <https://jira.lsstcorp.org/browse/DM-33751`__ is one of two possible solutions to the problem of how the image cutout service should identify its outputs (the other is allowing some dataset types to have non-unique data IDs within a run, which is less generally useful).
+  It is also the best way (when combined with :ref:`feature-data-id-set-upload` / `DM-33621 <https://jira.lsstcorp.org/browse/DM-33621`__) to support use cases involving ad-hoc pairs of images, such as pairwise image differencing or some intra/extra-focal processing tasks.
+
+- :ref:`feature-quantum-provenance` plays a key role in satisfying fundamental middleware requirements.
+
 .. _summary-and-recommendations:
 
 Summary and Recommendations
