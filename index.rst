@@ -16,16 +16,20 @@
 Introduction and Scope
 ======================
 
-DMTN-181 :cite:`DMTN-181` describes a Campaign Management system that provides tooling for organizing and tracking the multiple workflows that comprise a pipeline processing campaign.
-It also touches on what we will here call (for lack of a better term, so far) *Campaign Definition*: the tools and processes for determining the datasets, software, and configuration that will go into a campaign.
+DMTN-181 :cite:`DMTN-181` describes at a high level a Campaign Management system that provides tooling for organizing and tracking the multiple workflows that comprise a pipeline processing campaign.
+RTN-023 :cite:`RTN-023` describes in more detail a prototype for at least some of such a system, focused on tooling and procedures for managing many batch submission workflows.
+This document addresses design questions about the Campaign Management boundary with the lower-level aspects of the middleware - the `Butler` and `PipelineTask` systems in particular.
+It has relatively little overlap with the side of Campaign Management discussed by :cite:`RTN-023`, for which the relevant middleware interface is primarily the Batch Processing Service, though it does provide some alternatives for how state and provenance for workflow management could be stored.
+
+Instead, the primary focus here is we will here call (for lack of a better term, so far) *Campaign Definition*: the tools and processes for determining the datasets, software, and configuration that will go into a campaign.
 The datasets are our primary concern here, and for these :cite:`DMTN-181` focuses on the concept of exposure *exclusion lists* represented as *data ID sets*.
 A data ID set is a table (at least conceptually) whose columns are data ID keys (butler data dimensions), with each data ID a row; :cite:`DMTN-181` proposes using ``git``-controlled JSON files as the source of truth for these, and uploading them to a table in the `Registry` database for use in `QuantumGraph` generation.
 It also proposes that these be permanent database tables for provenance purposes.
 
 The processes and tools for creating and maintaining exclusion lists are considered out of scope for campaign management by :cite:`DMTN-181`, but it correctly notes that these must be assembled from many disparate inputs that cannot be assumed to be present in any single database (let along the `Registry` database), so generating exclusion lists from these inputs implicitly as part of the queries that back `QuantumGraph` generation is not viable.
 Defining those processes and tools fully is out of scope for this technote, too, but we will try to anticipate their demands on the middleware.
-That includes support for using the data repository as a place to store and query metrics, dataset annotations, and other criteria that play a role in building exclusion lists, as well as making the `Registry` database the source of truth for curated data ID sets (such as the exclusion lists themselves).
-It should be emphasized that this support has not been requested by those involved in pushing for and designing the Campaign Management system; on the contrary, they regard relying on the `Registry` database as over-centralization and poor separation of concerns.
+That includes support for using the data repository as a place to store and query metrics (see also DMTN-203 :cite:`DMTN-203`), dataset annotations (DMTN-204 :cite:`DMTN-204`), and other criteria that play a role in building exclusion lists, as well as making the `Registry` database the source of truth for curated data ID sets (such as the exclusion lists themselves).
+It should be emphasized that this support has not been requested by all of those involved in pushing for and designing the Campaign Management system, and some participants have expressed concerns that relying on the `Registry` database for these is over-centralization and poor separation of concerns.
 These are valid worries - it is fair to say that the butler tries to do too much already, schema stability and migration are not trivial problems, and the middleware codebase currently has few contributors - but if the alternative is standing up, populating, and maintaining another SQL database with content similar to or substantially overlapping the `Registry`'s, then tighter coupling between middleware and Campaign Definition and middleware scope increases seem like the lesser evils.
 
 .. note::
