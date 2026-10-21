@@ -1,17 +1,10 @@
-:tocdepth: 1
+#########################################################
+Middleware Support for Campaign Definition and Management
+#########################################################
 
-.. Please do not modify tocdepth; will be fixed when a new Sphinx theme is shipped.
+.. abstract::
 
-.. sectnum::
-
-.. TODO: Delete the note below before merging new content to the main branch.
-
-.. note::
-
-   **This technote is not yet published.**
-
-   The description of the Campaign Management system in the first draft of DMTN-181 :cite:`DMTN-181` implies a few butler/pipeline middleware feature requests, and the processes and tooling for defining campaigns are expected to need new middleware support as well.
-   This technote will attempt to aggregate those feature requests, while outlining a few possible approaches for how campaign definition and management will interact with the middleware, based on the absence or presence of potential new middleware functionality.
+   The description of the Campaign Management system in the first draft of DMTN-181 :cite:`DMTN-181` implies a few butler/pipeline middleware feature requests, and the processes and tooling for defining campaigns are expected to need new middleware support as well. This technote will attempt to aggregate those feature requests, while outlining a few possible approaches for how campaign definition and management will interact with the middleware, based on the absence or presence of potential new middleware functionality.
 
 Introduction and Scope
 ======================
@@ -425,7 +418,8 @@ The answer may depend largely on how well the current middleware supports runnin
 
 Most of the other Campaign Management/Definition and commissioning tasks we anticipate actually seem well-enough supported by current middleware to begin commissioning and even perform some large-scale processing (as we are already doing with DP0.2), even if there is room for improvement on virtually every front.
 
-.. rubric:: References
+References
+==========
 
-.. bibliography:: local.bib lsstbib/books.bib lsstbib/lsst.bib lsstbib/lsst-dm.bib lsstbib/refs.bib lsstbib/refs_ads.bib
-   :style: lsst_aa
+
+.. bibliography::
